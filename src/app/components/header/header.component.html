@@ -1,0 +1,19 @@
+<mat-toolbar color="primary" class="header-toolbar">
+  <div class="toolbar-section left">
+    <span class="company-name">UniverseG</span>
+  </div>
+  
+  <div class="toolbar-section center">
+    <div class="user-info">
+      <span class="user-name">{{ user.name }}</span>
+      <span class="user-role">{{ user.role }}</span>
+    </div>
+  </div>
+  
+  <div class="toolbar-section right">
+    <button mat-raised-button color="accent" (click)="onLogout()">
+      <mat-icon>exit_to_app</mat-icon>
+      Log Out
+    </button>
+  </div>
+</mat-toolbar> 
