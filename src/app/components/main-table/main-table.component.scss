@@ -1,0 +1,119 @@
+.container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.table-container {
+  width: 100%;
+  max-width: 1000px;
+  overflow-x: auto;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+h2 {
+  margin: 0;
+}
+
+table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+button {
+  margin-left: 16px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.status-draft .status-badge {
+  background-color: #e0e0e0;
+  color: #616161;
+}
+
+.status-revoke .status-badge {
+  background-color: #ffcdd2;
+  color: #c62828;
+}
+
+.status-ready-for-review .status-badge {
+  background-color: #bbdefb;
+  color: #1565c0;
+}
+
+.status-under-review .status-badge {
+  background-color: #fff9c4;
+  color: #f57f17;
+}
+
+.status-approved .status-badge {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.status-declined .status-badge {
+  background-color: #ef9a9a;
+  color: #b71c1c;
+}
+
+.mat-column-file {
+  width: 30%;
+}
+
+.mat-column-status {
+  width: 20%;
+}
+
+.mat-column-creator {
+  width: 40%;
+}
+
+.mat-column-actions {
+  width: 10%;
+  text-align: right;
+}
+
+.actions-header {
+  text-align: center;
+}
+
+.actions-cell {
+  text-align: center;
+  padding: 0 !important;
+}
+
+button.mat-icon-button {
+  margin-left: 0;
+}
+
+.document-actions-menu {
+  .mat-mdc-menu-panel {
+    max-height: none !important;
+  }
+  
+  .mat-mdc-menu-content {
+    padding: 0 !important;
+  }
+}
+
+.document-action-button {
+  min-height: 36px !important;
+}

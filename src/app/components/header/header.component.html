@@ -1,0 +1,37 @@
+<mat-toolbar color="primary" class="header-toolbar">
+  <div class="toolbar-section left">
+    <span class="company-name">UniverseG</span>
+  </div>
+  
+  <div class="toolbar-section center">
+    <div class="user-info">
+      @if (authService.isAuthenticated()) {
+        @if (authService.currentUser(); as user) {
+          <span class="user-name">{{ user.name }}</span>
+          <span class="user-role">{{ user.role }}</span>
+        }
+      } @else {
+        <span class="user-name">{{ defaultUser.name }}</span>
+        <span class="user-role">{{ defaultUser.role }}</span>
+      }
+    </div>
+  </div>
+  
+  <div class="toolbar-section right">
+    @if (authService.isAuthenticated()) {
+      <button mat-raised-button color="accent" (click)="onLogout()">
+        <mat-icon>exit_to_app</mat-icon>
+        Log Out
+      </button>
+    } @else {
+      <button mat-raised-button color="accent" routerLink="/login" class="login-btn">
+        <mat-icon>login</mat-icon>
+        Log In
+      </button>
+      <button mat-raised-button color="primary" routerLink="/register">
+        <mat-icon>person_add</mat-icon>
+        Register
+      </button>
+    }
+  </div>
+</mat-toolbar> 
