@@ -21,6 +21,7 @@
 
 .right {
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .company-name {
@@ -50,4 +51,8 @@ button {
   mat-icon {
     margin-right: 8px;
   }
+}
+
+.login-btn {
+  margin-right: 8px;
 } 
