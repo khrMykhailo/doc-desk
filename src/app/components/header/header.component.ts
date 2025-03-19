@@ -14,10 +14,8 @@ import { AuthService } from '../../auth/services/auth.service';
   styleUrl: './header.component.scss'
 })
 export class HeaderComponent {
-  // Використовуємо Auth сервіс для отримання даних користувача
   protected readonly authService = inject(AuthService);
   
-  // Мок-дані, які будуть показані, якщо користувач не авторизований
   readonly defaultUser = {
     name: 'Guest',
     role: 'Visitor'
