@@ -1,7 +1,17 @@
 import { DocumentStatus } from '../enums/document-status.enum';
 
+export interface Creator {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+}
+
 export interface TableItem {
-  file: string;
+  id: string;
+  name: string;
   status: DocumentStatus;
-  creator: string;
+  creator?: Creator;
+  updatedAt: string;
+  createdAt: string;
 } 

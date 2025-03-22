@@ -1,12 +1,14 @@
 import { Routes } from '@angular/router';
 import { MainTableComponent } from './components/main-table/main-table.component';
 import { authGuard } from './auth/guards/auth.guard';
+import { documentResolver } from './shared/resolvers/document.resolver';
 
 export const routes: Routes = [
   { 
     path: '', 
     component: MainTableComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    resolve: { documents: documentResolver }
   },
   { 
     path: 'login', 
