@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit, signal } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, signal, inject, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,6 +11,9 @@ import { FormatStatusPipe } from '../../shared/pipes';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentService } from '../../shared/services/document.service';
 import { DocumentApiResponse } from '../../shared/interfaces/document-response.interface';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Observable, of, BehaviorSubject } from 'rxjs';
+import { map, switchMap, tap, catchError, skip } from 'rxjs';
 
 @Component({
   selector: 'app-main-table',
@@ -29,46 +32,63 @@ import { DocumentApiResponse } from '../../shared/interfaces/document-response.i
   encapsulation: ViewEncapsulation.None
 })
 export class MainTableComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+  private documentService = inject(DocumentService);
+  private route = inject(ActivatedRoute);
+  
   displayedColumns: string[] = ['file', 'status', 'creator', 'actions'];
-  dataSource = signal<TableItem[]>([]);
   documentStatus = DocumentStatus;
   
-  
-  totalItems = signal<number>(0);
   pageSize = signal<number>(10);
-  pageIndex = signal<number>(0);
+  pageIndex = signal<number>(1);
   
-  constructor(
-    private route: ActivatedRoute,
-    private documentService: DocumentService
-  ) {}
+  resolverData = toSignal<DocumentApiResponse>(
+    this.route.data.pipe(
+      map(data => data['documents'] as DocumentApiResponse)
+    )
+  );
+  
+  private paginationParams = computed(() => ({
+    page: this.pageIndex(),
+    size: this.pageSize()
+  }));
+  
+  private isFirstLoad = signal<boolean>(true);
+  
+  private documents$ = toObservable(this.paginationParams).pipe(
+    switchMap(params => {
+      if (this.isFirstLoad()) {
+        const data = this.resolverData();
+        if (data) {
+          this.isFirstLoad.set(false);
+          return of(data);
+        }
+      }
+      
+      return this.documentService.getDocuments(params).pipe(
+        catchError(() => of({ count: 0, results: [] } as DocumentApiResponse))
+      );
+    })
+  );
+  
+  documentsData = toSignal(this.documents$, { 
+    initialValue: { count: 0, results: [] } 
+  });
+  
+  dataSource = computed(() => this.documentsData().results);
+  totalItems = computed(() => this.documentsData().count);
   
   ngOnInit(): void {
-    
-    this.route.data.subscribe(data => {
-      const documents = data['documents'] as DocumentApiResponse;
-      this.dataSource.set(documents.results);
-      this.totalItems.set(documents.count);
-      this.pageSize.set(10); 
-      this.pageIndex.set(1); 
-    });
+    const initialData = this.resolverData();
   }
   
   onPageChange(event: PageEvent): void {
-    const page = event.pageIndex;
-    const size = event.pageSize;
-    
-    
-    this.documentService.getDocuments({ page, size })
-      .subscribe(documents => {
-        this.dataSource.set(documents.results);
-        this.totalItems.set(documents.count);
-      });
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
   }
   
   addNewItem() {
     console.log('Add new item clicked');
-    
   }
   
   getStatusClass(status: DocumentStatus): string {
