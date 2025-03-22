@@ -15,11 +15,11 @@ export class DocumentService {
   getDocuments(params: PaginationParams): Observable<DocumentApiResponse> {
     let httpParams = new HttpParams();
     
-    // Додаємо параметри пагінації
+    
     httpParams = httpParams.append('page', params.page.toString());
     httpParams = httpParams.append('size', params.size.toString());
     
-    // Додаємо параметр сортування, якщо він є
+    
     if (params.sort) {
       httpParams = httpParams.append('sort', params.sort);
     }

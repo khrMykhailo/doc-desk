@@ -33,7 +33,7 @@ export class MainTableComponent implements OnInit {
   dataSource = signal<TableItem[]>([]);
   documentStatus = DocumentStatus;
   
-  // Параметри пагінації
+  
   totalItems = signal<number>(0);
   pageSize = signal<number>(10);
   pageIndex = signal<number>(0);
@@ -44,13 +44,13 @@ export class MainTableComponent implements OnInit {
   ) {}
   
   ngOnInit(): void {
-    // Отримуємо дані з резолвера
+    
     this.route.data.subscribe(data => {
       const documents = data['documents'] as DocumentApiResponse;
       this.dataSource.set(documents.results);
       this.totalItems.set(documents.count);
-      this.pageSize.set(10); // За замовчуванням встановлюємо розмір сторінки
-      this.pageIndex.set(1); // За замовчуванням встановлюємо першу сторінку
+      this.pageSize.set(10); 
+      this.pageIndex.set(1); 
     });
   }
   
@@ -58,7 +58,7 @@ export class MainTableComponent implements OnInit {
     const page = event.pageIndex;
     const size = event.pageSize;
     
-    // Завантажуємо нові дані при зміні сторінки
+    
     this.documentService.getDocuments({ page, size })
       .subscribe(documents => {
         this.dataSource.set(documents.results);
@@ -68,7 +68,7 @@ export class MainTableComponent implements OnInit {
   
   addNewItem() {
     console.log('Add new item clicked');
-    // Logic for adding a new item will be here
+    
   }
   
   getStatusClass(status: DocumentStatus): string {

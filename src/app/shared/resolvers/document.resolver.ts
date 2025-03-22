@@ -7,10 +7,10 @@ import { catchError, map, of } from 'rxjs';
 export const documentResolver: ResolveFn<DocumentApiResponse> = () => {
   const documentService = inject(DocumentService);
   
-  // За замовчуванням отримуємо першу сторінку з 10 документами
+  
   return documentService.getDocuments({ page: 1, size: 10 }).pipe(
     map(response => {
-      // Перевіряємо наявність поля creator у першому документі
+      
       if (response.results.length > 0) {
         const firstDocument = response.results[0];
         if (firstDocument.creator) {
