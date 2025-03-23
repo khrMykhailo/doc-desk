@@ -14,4 +14,5 @@ export interface TableItem {
   creator?: Creator;
   updatedAt: string;
   createdAt: string;
+  fileUrl?: string;
 } 

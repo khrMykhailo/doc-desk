@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { MainTableComponent } from './components/main-table/main-table.component';
+import { PdfEditorComponent } from './components/pdf-editor/pdf-editor.component';
 import { authGuard } from './auth/guards/auth.guard';
 import { documentResolver } from './shared/resolvers/document.resolver';
 
@@ -9,6 +10,17 @@ export const routes: Routes = [
     component: MainTableComponent,
     canActivate: [authGuard],
     resolve: { documents: documentResolver }
+  },
+  { 
+    path: 'documents', 
+    component: MainTableComponent,
+    canActivate: [authGuard],
+    resolve: { documents: documentResolver }
+  },
+  { 
+    path: 'documents/:id/view', 
+    component: PdfEditorComponent,
+    canActivate: [authGuard]
   },
   { 
     path: 'login', 

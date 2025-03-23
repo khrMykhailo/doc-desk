@@ -34,9 +34,9 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu" xPosition="before" class="document-actions-menu">
-            <button mat-menu-item (click)="editItem(element)" class="document-action-button">
-              <mat-icon>edit</mat-icon>
-              <span>Edit</span>
+            <button mat-menu-item (click)="viewItem(element)" class="document-action-button">
+              <mat-icon>visibility</mat-icon>
+              <span>View</span>
             </button>
             <button mat-menu-item *ngIf="canSubmitForReview(element.status)" (click)="submitForReview(element)" class="document-action-button">
               <mat-icon>send</mat-icon>

@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>Add New Document</h2>
+
+<div mat-dialog-content>
+  <form [formGroup]="documentForm">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Document Title</mat-label>
+      <input matInput formControlName="name" placeholder="Enter document title">
+      @if (documentForm.get('name')?.errors) {
+        <mat-error>{{ getFormControlError('name') }}</mat-error>
+      }
+    </mat-form-field>
+    
+    <div class="file-upload-container">
+      <button type="button" mat-raised-button color="primary" (click)="fileInput.click()">
+        <mat-icon>attach_file</mat-icon> Select PDF File
+      </button>
+      <input hidden type="file" #fileInput accept="application/pdf" (change)="onFileSelected($event)">
+      
+      @if (selectedFile()) {
+        <div class="selected-file">
+          <mat-icon>description</mat-icon>
+          <span>{{ selectedFile()?.name }}</span>
+        </div>
+      }
+      
+      @if (documentForm.get('file')?.touched && documentForm.get('file')?.errors) {
+        <mat-error>
+          {{ getFormControlError('file') }}
+        </mat-error>
+      }
+    </div>
+    
+    @if (errorMessage()) {
+      <div class="error-message">
+        {{ errorMessage() }}
+      </div>
+    }
+  </form>
+  
+  @if (isSubmitting()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button [disabled]="isSubmitting()" (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" [disabled]="isSubmitting() || documentForm.invalid" (click)="saveAsDraft()">
+    <mat-icon>save</mat-icon> Save as Draft
+  </button>
+</div>
