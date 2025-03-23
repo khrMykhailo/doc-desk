@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "copy-nutrient-assets": "powershell -Command \"Copy-Item -Path node_modules/@nutrient-sdk/viewer/dist/* -Destination src/assets/pspdfkit/ -Recurse -Force\"",
+    "postinstall": "npm run copy-nutrient-assets"
   },
   "private": true,
   "dependencies": {
@@ -19,8 +21,14 @@
     "@angular/platform-browser": "^19.2.0",
     "@angular/platform-browser-dynamic": "^19.2.0",
     "@angular/router": "^19.2.0",
+    "@ngrx/effects": "^19.0.1",
+    "@ngrx/entity": "^19.0.1",
+    "@ngrx/store": "^19.0.1",
+    "@ngrx/store-devtools": "^19.0.1",
+    "@nutrient-sdk/viewer": "^1.1.0",
     "@types/jwt-decode": "^2.2.1",
     "jwt-decode": "^4.0.0",
+    "pspdfkit": "^2024.8.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

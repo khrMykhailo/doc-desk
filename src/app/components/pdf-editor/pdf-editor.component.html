@@ -1,0 +1,33 @@
+<div class="pdf-editor-container">
+  <div class="toolbar">
+    <button mat-icon-button (click)="backToDocuments()" matTooltip="Return to documents list">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    @if (document()) {
+      <h2>{{ document()?.name }}</h2>
+    }
+    <div class="spacer"></div>
+    <button mat-raised-button color="primary" (click)="saveDocument()" [disabled]="!instance()">
+      <mat-icon>save</mat-icon> Save
+    </button>
+  </div>
+  
+  @if (loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading document...</p>
+    </div>
+  }
+  
+  @if (error()) {
+    <div class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <p>Error loading document. Please try again later.</p>
+      <button mat-raised-button color="primary" (click)="backToDocuments()">
+        Return to documents
+      </button>
+    </div>
+  }
+  
+  <div #pdfContainer id="pdfContainer" class="pdf-container" [hidden]="loading() || error()"></div>
+</div>

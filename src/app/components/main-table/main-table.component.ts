@@ -1,13 +1,21 @@
-import { Component, ViewEncapsulation } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, signal, inject, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TableItem } from '../../shared/interfaces/main-table.interface';
-import { TABLE_DATA } from '../../shared/constants/main-table.constants';
 import { DocumentStatus } from '../../shared/enums/document-status.enum';
 import { FormatStatusPipe } from '../../shared/pipes';
+import { ActivatedRoute, Router } from '@angular/router';
+import { DocumentService } from '../../shared/services/document.service';
+import { DocumentApiResponse } from '../../shared/interfaces/document-response.interface';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Observable, of, BehaviorSubject, Subject } from 'rxjs';
+import { map, switchMap, tap, catchError, skip } from 'rxjs';
+import { AddDocumentModalComponent } from '../add-document-modal/add-document-modal.component';
 
 @Component({
   selector: 'app-main-table',
@@ -18,28 +26,105 @@ import { FormatStatusPipe } from '../../shared/pipes';
     MatButtonModule, 
     MatIconModule, 
     MatMenuModule,
+    MatPaginatorModule,
+    MatDialogModule,
     FormatStatusPipe
   ],
   templateUrl: './main-table.component.html',
   styleUrl: './main-table.component.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class MainTableComponent {
+export class MainTableComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+  private documentService = inject(DocumentService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  
   displayedColumns: string[] = ['file', 'status', 'creator', 'actions'];
-  dataSource = TABLE_DATA;
   documentStatus = DocumentStatus;
   
+  pageSize = signal<number>(10);
+  pageIndex = signal<number>(0);
+  
+  private refreshTrigger = new BehaviorSubject<void>(undefined);
+  
+  resolverData = toSignal<DocumentApiResponse>(
+    this.route.data.pipe(
+      map(data => data['documents'] as DocumentApiResponse)
+    )
+  );
+  
+  private paginationParams = computed(() => ({
+    page: this.pageIndex() + 1,
+    size: this.pageSize()
+  }));
+  
+  private isFirstLoad = signal<boolean>(true);
+  
+  private documents$ = toObservable(this.paginationParams).pipe(
+    switchMap(params => this.refreshTrigger.pipe(
+      map(() => params)
+    )),
+    switchMap(params => {
+      if (this.isFirstLoad()) {
+        const data = this.resolverData();
+        if (data) {
+          this.isFirstLoad.set(false);
+          return of(data);
+        }
+      }
+      
+      return this.documentService.getDocuments(params).pipe(
+        catchError(() => of({ count: 0, results: [] } as DocumentApiResponse))
+      );
+    })
+  );
+  
+  documentsData = toSignal(this.documents$, { 
+    initialValue: { count: 0, results: [] } 
+  });
+  
+  dataSource = computed(() => this.documentsData().results);
+  totalItems = computed(() => this.documentsData().count);
+  
+  ngOnInit(): void {
+    const initialData = this.resolverData();
+  }
+  
+  refreshData(): void {
+    this.refreshTrigger.next();
+  }
+  
+  onPageChange(event: PageEvent): void {
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+  }
+  
   addNewItem() {
-    console.log('Add new item clicked');
-    // Logic for adding a new item will be here
+    const dialogRef = this.dialog.open(AddDocumentModalComponent, {
+      width: '500px',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(result => {
+      if (result) {
+        console.log('Document created:', result);
+        this.pageIndex.set(0);
+        this.refreshData();
+      }
+    });
   }
   
   getStatusClass(status: DocumentStatus): string {
     return 'status-' + status.toString().toLowerCase().replace(/_/g, '-');
   }
 
-  editItem(item: TableItem) {
-    console.log('Edit item:', item);
+  viewItem(item: TableItem) {
+    console.log('View item:', item);
+    this.router.navigate(['/documents', item.id, 'view']);
   }
 
   submitForReview(item: TableItem) {
