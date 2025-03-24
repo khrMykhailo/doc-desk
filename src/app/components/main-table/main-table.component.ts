@@ -124,7 +124,6 @@ export class MainTableComponent implements OnInit {
   
   addNewItem() {
     if (!this.isUser()) {
-      console.log('Only users can add new documents');
       return;
     }
     
@@ -137,7 +136,6 @@ export class MainTableComponent implements OnInit {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(result => {
       if (result) {
-        console.log('Document created:', result);
         this.pageIndex.set(0);
         this.refreshData();
       }
@@ -170,7 +168,6 @@ export class MainTableComponent implements OnInit {
   }
 
   viewItem(item: TableItem) {
-    console.log('View item:', item);
     this.router.navigate(['/documents', item.id, 'view']);
   }
 
@@ -189,23 +186,19 @@ export class MainTableComponent implements OnInit {
     dialogRef.afterClosed().pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(result => {
-      console.log('Document edited, result:', result);
       this.refreshData();
     });
   }
 
   submitForReview(item: TableItem) {
     if (!this.isUser()) {
-      console.log('Only users can submit documents for review');
       return;
     }
     
-    console.log('Submit for review:', item);
     this.documentService.submitForReview(item.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          console.log('Document submitted for review');
           this.refreshData();
         },
         error: (error) => {
@@ -216,16 +209,13 @@ export class MainTableComponent implements OnInit {
 
   revokeDocument(item: TableItem) {
     if (!this.isUser()) {
-      console.log('Only users can revoke documents');
       return;
     }
     
-    console.log('Revoke document:', item);
     this.documentService.revokeDocument(item.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          console.log('Document revoked');
           this.refreshData();
         },
         error: (error) => {
@@ -236,16 +226,13 @@ export class MainTableComponent implements OnInit {
 
   deleteItem(item: TableItem) {
     if (!this.isUser()) {
-      console.log('Only users can delete documents');
       return;
     }
     
-    console.log('Delete item:', item);
     this.documentService.deleteDocument(item.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          console.log('Document deleted');
           this.refreshData();
         },
         error: (error) => {
@@ -256,16 +243,13 @@ export class MainTableComponent implements OnInit {
 
   changeStatus(item: TableItem, status: DocumentStatus) {
     if (!this.isReviewer()) {
-      console.log('Only reviewers can change document status');
       return;
     }
     
-    console.log(`Changing status to ${status}:`, item);
     this.documentService.changeDocumentStatus(item.id, status)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          console.log(`Document status changed to ${status}`);
           this.refreshData();
         },
         error: (error) => {

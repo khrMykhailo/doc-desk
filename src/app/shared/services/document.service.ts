@@ -36,7 +36,6 @@ export class DocumentService {
   }
   
   updateDocumentName(documentId: string, name: string): Observable<TableItem> {
-    console.log(`Updating document name: ${documentId} to ${name}`);
     return this.http.patch<TableItem>(`${this.baseUrl}/${documentId}`, { name });
   }
   
@@ -49,22 +48,18 @@ export class DocumentService {
   }
   
   deleteDocument(documentId: string): Observable<void> {
-    console.log(`Deleting document: ${documentId}`);
     return this.http.delete<void>(`${this.baseUrl}/${documentId}`);
   }
   
   submitForReview(documentId: string): Observable<TableItem> {
-    console.log(`Submitting document for review: ${documentId}`);
     return this.http.post<TableItem>(`${this.baseUrl}/${documentId}/send-to-review`, {});
   }
   
   revokeDocument(documentId: string): Observable<TableItem> {
-    console.log(`Revoking document: ${documentId}`);
     return this.http.post<TableItem>(`${this.baseUrl}/${documentId}/revoke-review`, {});
   }
   
   changeDocumentStatus(documentId: string, status: DocumentStatus): Observable<TableItem> {
-    console.log(`Changing document status: ${documentId} to ${status}`);
     return this.http.post<TableItem>(`${this.baseUrl}/${documentId}/change-status`, { status });
   }
 } 

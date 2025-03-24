@@ -227,18 +227,11 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(result => {
       if (result) {
-        console.log('Document edited:', result);
-        // If document was deleted, navigate back
-        if (result.deleted) {
-          this.backToDocuments();
-        } else {
-          // Refresh document data
-          this.documentService.getDocumentById(this.document()!.id)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(updatedDoc => {
-              this.document.set(updatedDoc);
-            });
-        }
+        this.documentService.getDocumentById(this.document()!.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe(updatedDoc => {
+            this.document.set(updatedDoc);
+          });
       }
     });
   }
