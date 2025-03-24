@@ -7,9 +7,6 @@
       <h2>{{ document()?.name }}</h2>
     }
     <div class="spacer"></div>
-    <button mat-raised-button color="primary" (click)="saveDocument()" [disabled]="!instance()">
-      <mat-icon>save</mat-icon> Save
-    </button>
   </div>
   
   @if (loading()) {

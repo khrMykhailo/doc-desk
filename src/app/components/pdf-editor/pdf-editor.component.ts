@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, inject, DestroyRef, input, viewChild, signal } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, inject, DestroyRef, input, viewChild, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -14,9 +14,8 @@ import { TableItem } from '../../shared/interfaces/main-table.interface';
 import { DocumentStatus } from '../../shared/enums/document-status.enum';
 import { environment } from '../../../environments/environment';
 import { EditDocumentModalComponent } from '../edit-document-modal/edit-document-modal.component';
+import NutrientViewer from '@nutrient-sdk/viewer';
 
-// In Angular, you don't need an explicit import, the script is already included in index.html
-// and accessible globally as NutrientViewer
 
 @Component({
   selector: 'app-pdf-editor',
@@ -30,7 +29,7 @@ import { EditDocumentModalComponent } from '../edit-document-modal/edit-document
   templateUrl: './pdf-editor.component.html',
   styleUrls: ['./pdf-editor.component.scss']
 })
-export class PdfEditorComponent implements OnInit, OnDestroy {
+export class PdfEditorComponent implements AfterViewInit, OnDestroy {
   pdfContainer = viewChild<ElementRef<HTMLDivElement>>('pdfContainer');
   documentId = input<string>('');
   
@@ -39,7 +38,6 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private http = inject(HttpClient);
   private dialog = inject(MatDialog);
   
   document = signal<TableItem | undefined>(undefined);
@@ -47,7 +45,7 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
   loading = signal<boolean>(true);
   error = signal<boolean>(false);
   
-  ngOnInit(): void {
+  ngAfterViewInit(): void {
     this.route.paramMap.pipe(
       takeUntilDestroyed(this.destroyRef),
       switchMap(params => {
@@ -124,25 +122,19 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
     console.log('Loading PDF viewer with URL:', pdfUrl);
     console.log('Container element:', container);
 
-    (window as any).NutrientViewer.load({
+    NutrientViewer.load({
       container,
       document: pdfUrl,
       baseUrl: `${location.origin}/assets/pspdfkit/`,
       locale: "en",
-      language: "en",
-      toolbarItems: this.getToolbarItems()
+      toolbarItems: this.getToolbarItems(),
     })
     .then((instance: any) => {
-      console.log('PDF viewer initialized successfully:', instance);
       this.instance.set(instance);
       this.loading.set(false);
-      
-      instance.addEventListener("document.change", () => {
-        console.log('Document has unsaved changes');
-      });
     })
     .catch((error: Error) => {
-      console.error('Error loading PDF editor:', error);
+      console.error('Error loading PDF viewer:', error);
       this.error.set(true);
       this.loading.set(false);
     });
@@ -155,9 +147,6 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
       { type: "pager" },
       { type: "zoom-out" },
       { type: "zoom-in" },
-      { type: "zoom-mode" },
-      { type: "spacer" },
-      { type: "pan" },
       { type: "print" },
     ];
     
@@ -171,44 +160,11 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
         { type: "text" },
         { type: "note" },
         { type: "ink-eraser" },
-        { type: "spacer" },
-        { type: "export-pdf" }
+        { type: "spacer" }
       ];
     }
     
     return baseItems;
-  }
-  
-  private hasUnsavedChanges(): boolean {
-    return true;
-  }
-  
-  saveDocument(): void {
-    // Only reviewers can save changes to documents
-    if (!this.authService.isReviewer()) {
-      console.log('Only reviewers can save changes to documents');
-      return;
-    }
-    
-    const currentInstance = this.instance();
-    if (!currentInstance) return;
-    
-    currentInstance.exportPDF().then((buffer: ArrayBuffer) => {
-      const blob = new Blob([buffer], { type: 'application/pdf' });
-      const formData = new FormData();
-      formData.append('file', blob, 'document.pdf');
-      
-      this.documentService.updateDocument(this.documentId(), formData)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (response: TableItem) => {
-            console.log('Document saved successfully:', response);
-          },
-          error: (error: Error) => {
-            console.error('Error saving document:', error);
-          }
-        });
-    });
   }
   
   editDocument(): void {
@@ -246,11 +202,6 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
   
   canEdit(): boolean {
     return this.isUser() && this.document() !== undefined;
-  }
-  
-  canSave(): boolean {
-    return this.isReviewer() && this.document() !== undefined && 
-      this.document()!.status === DocumentStatus.UNDER_REVIEW;
   }
   
   async backToDocuments(): Promise<void> {
