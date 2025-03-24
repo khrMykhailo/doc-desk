@@ -1,0 +1,67 @@
+<h2 mat-dialog-title>Edit Document</h2>
+<div mat-dialog-content>
+  <form [formGroup]="documentForm">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Document Title</mat-label>
+      <input matInput formControlName="name" placeholder="Enter document title">
+      @if (documentForm.get('name')?.errors) {
+        <mat-error>{{ getFormControlError('name') }}</mat-error>
+      }
+    </mat-form-field>
+    
+    @if (isReviewer() && canChangeStatus()) {
+      <div class="status-section">
+        <h3>Change Status</h3>
+        <div class="status-actions">
+          @if (data.documentStatus === documentStatus.READY_FOR_REVIEW) {
+            <button mat-raised-button color="primary" (click)="changeStatus(documentStatus.UNDER_REVIEW)" [disabled]="isSubmitting()">
+              <mat-icon>assignment</mat-icon> Start Review
+            </button>
+          }
+          
+          @if (data.documentStatus === documentStatus.UNDER_REVIEW) {
+            <button mat-raised-button color="accent" (click)="changeStatus(documentStatus.APPROVED)" [disabled]="isSubmitting()">
+              <mat-icon>check_circle</mat-icon> Approve
+            </button>
+            <button mat-raised-button color="warn" (click)="changeStatus(documentStatus.DECLINED)" [disabled]="isSubmitting()">
+              <mat-icon>cancel</mat-icon> Decline
+            </button>
+          }
+        </div>
+      </div>
+    }
+    
+    @if (isUser() && data.documentStatus === documentStatus.READY_FOR_REVIEW) {
+      <div class="status-section">
+        <button mat-raised-button color="warn" (click)="revokeDocument()" [disabled]="isSubmitting()">
+          <mat-icon>undo</mat-icon> Revoke Document
+        </button>
+      </div>
+    }
+    
+    @if (isUser() && canDelete()) {
+      <div class="status-section">
+        <button mat-raised-button color="warn" (click)="deleteDocument()" [disabled]="isSubmitting()">
+          <mat-icon>delete</mat-icon> Delete Document
+        </button>
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="error-message">
+        {{ errorMessage() }}
+      </div>
+    }
+  </form>
+
+  @if (isSubmitting()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button [disabled]="isSubmitting()" (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" [disabled]="isSubmitting() || documentForm.invalid || !documentForm.dirty" (click)="saveChanges()">
+    <mat-icon>save</mat-icon> Save Changes
+  </button>
+</div> 
