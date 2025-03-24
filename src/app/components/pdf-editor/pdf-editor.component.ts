@@ -5,11 +5,15 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, Subject, from, switchMap, tap, catchError, of } from 'rxjs';
 import { DocumentService } from '../../shared/services/document.service';
+import { AuthService } from '../../shared/services/auth.service';
 import { TableItem } from '../../shared/interfaces/main-table.interface';
+import { DocumentStatus } from '../../shared/enums/document-status.enum';
 import { environment } from '../../../environments/environment';
+import { EditDocumentModalComponent } from '../edit-document-modal/edit-document-modal.component';
 
 // In Angular, you don't need an explicit import, the script is already included in index.html
 // and accessible globally as NutrientViewer
@@ -32,9 +36,11 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
   
   private destroyRef = inject(DestroyRef);
   private documentService = inject(DocumentService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private http = inject(HttpClient);
+  private dialog = inject(MatDialog);
   
   document = signal<TableItem | undefined>(undefined);
   instance = signal<any>(null);
@@ -124,25 +130,7 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
       baseUrl: `${location.origin}/assets/pspdfkit/`,
       locale: "en",
       language: "en",
-      toolbarItems: [
-        { type: "sidebar-thumbnails" },
-        { type: "sidebar-bookmarks" },
-        { type: "pager" },
-        { type: "zoom-out" },
-        { type: "zoom-in" },
-        { type: "zoom-mode" },
-        { type: "spacer" },
-        { type: "text-highlighter" },
-        { type: "stamp" },
-        { type: "ink" },
-        { type: "text" },
-        { type: "note" },
-        { type: "ink-eraser" },
-        { type: "pan" },
-        { type: "print" },
-        { type: "spacer" },
-        { type: "export-pdf" }
-      ]
+      toolbarItems: this.getToolbarItems()
     })
     .then((instance: any) => {
       console.log('PDF viewer initialized successfully:', instance);
@@ -160,11 +148,48 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
     });
   }
   
+  private getToolbarItems(): any[] {
+    const baseItems = [
+      { type: "sidebar-thumbnails" },
+      { type: "sidebar-bookmarks" },
+      { type: "pager" },
+      { type: "zoom-out" },
+      { type: "zoom-in" },
+      { type: "zoom-mode" },
+      { type: "spacer" },
+      { type: "pan" },
+      { type: "print" },
+    ];
+    
+    // Only show edit tools for reviewers
+    if (this.authService.isReviewer()) {
+      return [
+        ...baseItems,
+        { type: "text-highlighter" },
+        { type: "stamp" },
+        { type: "ink" },
+        { type: "text" },
+        { type: "note" },
+        { type: "ink-eraser" },
+        { type: "spacer" },
+        { type: "export-pdf" }
+      ];
+    }
+    
+    return baseItems;
+  }
+  
   private hasUnsavedChanges(): boolean {
     return true;
   }
   
   saveDocument(): void {
+    // Only reviewers can save changes to documents
+    if (!this.authService.isReviewer()) {
+      console.log('Only reviewers can save changes to documents');
+      return;
+    }
+    
     const currentInstance = this.instance();
     if (!currentInstance) return;
     
@@ -184,6 +209,55 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
           }
         });
     });
+  }
+  
+  editDocument(): void {
+    if (!this.document()) return;
+    
+    const dialogRef = this.dialog.open(EditDocumentModalComponent, {
+      width: '500px',
+      data: {
+        documentId: this.document()!.id,
+        documentName: this.document()!.name,
+        documentStatus: this.document()!.status
+      }
+    });
+    
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(result => {
+      if (result) {
+        console.log('Document edited:', result);
+        // If document was deleted, navigate back
+        if (result.deleted) {
+          this.backToDocuments();
+        } else {
+          // Refresh document data
+          this.documentService.getDocumentById(this.document()!.id)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(updatedDoc => {
+              this.document.set(updatedDoc);
+            });
+        }
+      }
+    });
+  }
+  
+  isUser(): boolean {
+    return this.authService.isUser();
+  }
+  
+  isReviewer(): boolean {
+    return this.authService.isReviewer();
+  }
+  
+  canEdit(): boolean {
+    return this.isUser() && this.document() !== undefined;
+  }
+  
+  canSave(): boolean {
+    return this.isReviewer() && this.document() !== undefined && 
+      this.document()!.status === DocumentStatus.UNDER_REVIEW;
   }
   
   async backToDocuments(): Promise<void> {

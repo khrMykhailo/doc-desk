@@ -7,9 +7,18 @@
       <h2>{{ document()?.name }}</h2>
     }
     <div class="spacer"></div>
-    <button mat-raised-button color="primary" (click)="saveDocument()" [disabled]="!instance()">
-      <mat-icon>save</mat-icon> Save
-    </button>
+    
+    @if (canEdit()) {
+      <button mat-raised-button color="primary" (click)="editDocument()" matTooltip="Edit document properties">
+        <mat-icon>edit</mat-icon> Edit
+      </button>
+    }
+    
+    @if (canSave()) {
+      <button mat-raised-button color="accent" (click)="saveDocument()" [disabled]="!instance()">
+        <mat-icon>save</mat-icon> Save
+      </button>
+    }
   </div>
   
   @if (loading()) {
