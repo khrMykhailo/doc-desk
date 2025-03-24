@@ -13,9 +13,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { DocumentService } from '../../shared/services/document.service';
 import { AuthService, UserRole } from '../../shared/services/auth.service';
 import { DocumentApiResponse } from '../../shared/interfaces/document-response.interface';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Observable, of, BehaviorSubject, Subject } from 'rxjs';
-import { map, switchMap, tap, catchError, skip } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AddDocumentModalComponent } from '../add-document-modal/add-document-modal.component';
 import { EditDocumentModalComponent } from '../edit-document-modal/edit-document-modal.component';
 
@@ -51,56 +49,49 @@ export class MainTableComponent implements OnInit {
   pageSize = signal<number>(10);
   pageIndex = signal<number>(0);
   
-  private refreshTrigger = new BehaviorSubject<void>(undefined);
+  refreshTrigger = signal<number>(0);
   
-  resolverData = toSignal<DocumentApiResponse>(
-    this.route.data.pipe(
-      map(data => data['documents'] as DocumentApiResponse)
-    )
-  );
+  resolverData = signal<DocumentApiResponse | null>(null);
   
-  private paginationParams = computed(() => ({
+  paginationParams = computed(() => ({
     page: this.pageIndex() + 1,
     size: this.pageSize()
   }));
   
-  private isFirstLoad = signal<boolean>(true);
+  isFirstLoad = signal<boolean>(true);
   
-  private documents$ = toObservable(this.paginationParams).pipe(
-    switchMap(params => this.refreshTrigger.pipe(
-      map(() => params)
-    )),
-    switchMap(params => {
-      if (this.isFirstLoad()) {
-        const data = this.resolverData();
-        if (data) {
-          this.isFirstLoad.set(false);
-          return of(data);
-        }
-      }
-      
-      return this.documentService.getDocuments(params).pipe(
-        catchError(() => of({ count: 0, results: [] } as DocumentApiResponse))
-      );
-    })
-  );
-  
-  documentsData = toSignal(this.documents$, { 
-    initialValue: { count: 0, results: [] } 
-  });
+  documentsData = signal<DocumentApiResponse>({ count: 0, results: [] });
   
   dataSource = computed(() => this.documentsData().results);
   totalItems = computed(() => this.documentsData().count);
+  
+  documents = signal<TableItem[]>([]);
+  filteredDocuments = computed(() => this.documents());
   
   constructor() {
     effect(() => {
       const role = this.authService.currentRole();
       this.updateDisplayedColumns();
     });
+    
+    effect(() => {
+      const pageParams = this.paginationParams();
+      const refreshCount = this.refreshTrigger();
+      
+      this.loadDocumentsData();
+    });
   }
   
   ngOnInit(): void {
-    const initialData = this.resolverData();
+    this.route.data.subscribe(data => {
+      const documents = data['documents'] as DocumentApiResponse;
+      if (documents) {
+        this.resolverData.set(documents);
+        this.documentsData.set(documents);
+        this.isFirstLoad.set(false);
+      }
+    });
+    
     this.updateDisplayedColumns();
   }
   
@@ -114,12 +105,32 @@ export class MainTableComponent implements OnInit {
   }
   
   refreshData(): void {
-    this.refreshTrigger.next();
+    this.refreshTrigger.update(count => count + 1);
   }
   
   onPageChange(event: PageEvent): void {
     this.pageIndex.set(event.pageIndex);
     this.pageSize.set(event.pageSize);
+  }
+  
+  private loadDocumentsData(): void {
+    if (this.isFirstLoad() && this.resolverData()) {
+      this.documentsData.set(this.resolverData()!);
+      this.isFirstLoad.set(false);
+      return;
+    }
+    
+    this.documentService.getDocuments(this.paginationParams())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.documentsData.set(response);
+        },
+        error: (error) => {
+          console.error('Error loading documents:', error);
+          this.documentsData.set({ count: 0, results: [] });
+        }
+      });
   }
   
   addNewItem() {
@@ -284,5 +295,9 @@ export class MainTableComponent implements OnInit {
   
   canApproveOrDecline(status: DocumentStatus): boolean {
     return this.isReviewer() && status === DocumentStatus.UNDER_REVIEW;
+  }
+
+  loadDocuments(): void {
+    this.loadDocumentsData();
   }
 }
