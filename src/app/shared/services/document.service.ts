@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { DocumentApiResponse, PaginationParams } from '../interfaces/document-response.interface';
 import { environment } from '../../../environments/environment';
 import { TableItem } from '../interfaces/main-table.interface';
+import { DocumentStatus } from '../enums/document-status.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -34,11 +35,31 @@ export class DocumentService {
     return this.http.put<TableItem>(`${this.baseUrl}/${documentId}/content`, formData);
   }
   
+  updateDocumentName(documentId: string, name: string): Observable<TableItem> {
+    return this.http.patch<TableItem>(`${this.baseUrl}/${documentId}`, { name });
+  }
+  
   getDocumentContent(documentId: string): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/${documentId}/content`, { responseType: 'blob' });
   }
   
   createDocument(formData: FormData): Observable<TableItem> {
     return this.http.post<TableItem>(this.baseUrl, formData);
+  }
+  
+  deleteDocument(documentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${documentId}`);
+  }
+  
+  submitForReview(documentId: string): Observable<TableItem> {
+    return this.http.post<TableItem>(`${this.baseUrl}/${documentId}/send-to-review`, {});
+  }
+  
+  revokeDocument(documentId: string): Observable<TableItem> {
+    return this.http.post<TableItem>(`${this.baseUrl}/${documentId}/revoke-review`, {});
+  }
+  
+  changeDocumentStatus(documentId: string, status: DocumentStatus): Observable<TableItem> {
+    return this.http.post<TableItem>(`${this.baseUrl}/${documentId}/change-status`, { status });
   }
 } 

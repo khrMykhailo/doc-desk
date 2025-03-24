@@ -1,4 +1,4 @@
-import { Component, inject, DestroyRef, signal, computed } from '@angular/core';
+import { Component, inject, DestroyRef, signal, Inject, Optional } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -74,6 +74,33 @@ export class AddDocumentModalComponent {
     const formData = new FormData();
     formData.append('name', this.documentForm.get('name')?.value);
     formData.append('status', DocumentStatus.DRAFT);
+    formData.append('file', this.selectedFile()!);
+
+    this.documentService.createDocument(formData)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.isSubmitting.set(false);
+          this.dialogRef.close(response);
+        },
+        error: (error) => {
+          this.isSubmitting.set(false);
+          this.errorMessage.set('Error creating document: ' + (error.message || 'Unknown error'));
+          console.error('Error creating document:', error);
+        }
+      });
+  }
+
+  submitForReview(): void {
+    if (this.documentForm.invalid || !this.selectedFile()) {
+      this.documentForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    const formData = new FormData();
+    formData.append('name', this.documentForm.get('name')?.value);
+    formData.append('status', DocumentStatus.READY_FOR_REVIEW);
     formData.append('file', this.selectedFile()!);
 
     this.documentService.createDocument(formData)

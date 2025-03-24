@@ -2,10 +2,12 @@
   <div class="table-container">
     <div class="header-container">
       <h2>Documents Table</h2>
-      <button mat-raised-button color="primary" (click)="addNewItem()">
-        <mat-icon>add</mat-icon>
-        Add New
-      </button>
+      @if (isUser()) {
+        <button mat-raised-button color="primary" (click)="addNewItem()">
+          <mat-icon>add</mat-icon>
+          Add New
+        </button>
+      }
     </div>
 
     <table mat-table [dataSource]="dataSource()" class="mat-elevation-z8">
@@ -22,6 +24,11 @@
         </td>
       </ng-container>
       
+      <ng-container matColumnDef="updatedAt">
+        <th mat-header-cell *matHeaderCellDef> Updated at </th>
+        <td mat-cell *matCellDef="let element"> {{formatDate(element.updatedAt)}} </td>
+      </ng-container>
+      
       <ng-container matColumnDef="creator">
         <th mat-header-cell *matHeaderCellDef> Creator </th>
         <td mat-cell *matCellDef="let element"> {{element.creator?.fullName || 'Not specified'}} </td>
@@ -30,41 +37,81 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef class="actions-header"> Actions </th>
         <td mat-cell *matCellDef="let element" class="actions-cell">
-          <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Actions">
+          <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Document actions">
             <mat-icon>more_vert</mat-icon>
           </button>
-          <mat-menu #menu="matMenu" xPosition="before" class="document-actions-menu">
+          <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="viewItem(element)" class="document-action-button">
               <mat-icon>visibility</mat-icon>
               <span>View</span>
             </button>
-            <button mat-menu-item *ngIf="canSubmitForReview(element.status)" (click)="submitForReview(element)" class="document-action-button">
-              <mat-icon>send</mat-icon>
-              <span>Submit for review</span>
-            </button>
-            <button mat-menu-item *ngIf="canDecline(element.status)" (click)="declineItem(element)" class="document-action-button">
-              <mat-icon>block</mat-icon>
-              <span>Decline</span>
-            </button>
-            <button mat-menu-item *ngIf="canDelete(element.status)" (click)="deleteItem(element)" class="document-action-button">
-              <mat-icon>delete</mat-icon>
-              <span>Delete</span>
-            </button>
+            
+            @if (canEdit(element)) {
+              <button mat-menu-item (click)="editItem(element)" class="document-action-button">
+                <mat-icon>edit</mat-icon>
+                <span>Edit</span>
+              </button>
+            }
+            
+            @if (canSubmitForReview(element.status)) {
+              <button mat-menu-item (click)="submitForReview(element)" class="document-action-button">
+                <mat-icon>send</mat-icon>
+                <span>Submit for Review</span>
+              </button>
+            }
+            
+            @if (canRevoke(element.status)) {
+              <button mat-menu-item (click)="revokeDocument(element)" class="document-action-button">
+                <mat-icon>undo</mat-icon>
+                <span>Revoke</span>
+              </button>
+            }
+            
+            @if (canDelete(element.status)) {
+              <button mat-menu-item (click)="deleteItem(element)" class="document-action-button">
+                <mat-icon>delete</mat-icon>
+                <span>Delete</span>
+              </button>
+            }
+            
+            @if (canStartReview(element.status)) {
+              <button mat-menu-item (click)="changeStatus(element, documentStatus.UNDER_REVIEW)" class="document-action-button">
+                <mat-icon>assignment</mat-icon>
+                <span>Start Review</span>
+              </button>
+            }
+            
+            @if (canApproveOrDecline(element.status)) {
+              <button mat-menu-item (click)="changeStatus(element, documentStatus.APPROVED)" class="document-action-button">
+                <mat-icon>check_circle</mat-icon>
+                <span>Approve</span>
+              </button>
+            }
+            
+            @if (canApproveOrDecline(element.status)) {
+              <button mat-menu-item (click)="changeStatus(element, documentStatus.DECLINED)" class="document-action-button">
+                <mat-icon>cancel</mat-icon>
+                <span>Decline</span>
+              </button>
+            }
           </mat-menu>
         </td>
       </ng-container>
       
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
+      
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" colspan="5" style="text-align: center;">
+          No documents found
+        </td>
+      </tr>
     </table>
     
-    <mat-paginator
-      [length]="totalItems()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageIndex()"
-      [pageSizeOptions]="[5, 10, 25, 50]"
-      (page)="onPageChange($event)"
-      aria-label="Select page">
+    <mat-paginator [length]="totalItems()"
+                  [pageSize]="pageSize()"
+                  [pageSizeOptions]="[5, 10, 25, 50]"
+                  (page)="onPageChange($event)">
     </mat-paginator>
   </div>
 </div>

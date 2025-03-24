@@ -1,18 +1,21 @@
-import { Component, OnInit, OnDestroy, ElementRef, inject, DestroyRef, input, viewChild, signal } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, inject, DestroyRef, input, viewChild, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, Subject, from, switchMap, tap, catchError, of } from 'rxjs';
 import { DocumentService } from '../../shared/services/document.service';
+import { AuthService } from '../../shared/services/auth.service';
 import { TableItem } from '../../shared/interfaces/main-table.interface';
+import { DocumentStatus } from '../../shared/enums/document-status.enum';
 import { environment } from '../../../environments/environment';
+import { EditDocumentModalComponent } from '../edit-document-modal/edit-document-modal.component';
+import NutrientViewer from '@nutrient-sdk/viewer';
 
-// In Angular, you don't need an explicit import, the script is already included in index.html
-// and accessible globally as NutrientViewer
 
 @Component({
   selector: 'app-pdf-editor',
@@ -26,22 +29,23 @@ import { environment } from '../../../environments/environment';
   templateUrl: './pdf-editor.component.html',
   styleUrls: ['./pdf-editor.component.scss']
 })
-export class PdfEditorComponent implements OnInit, OnDestroy {
+export class PdfEditorComponent implements AfterViewInit, OnDestroy {
   pdfContainer = viewChild<ElementRef<HTMLDivElement>>('pdfContainer');
   documentId = input<string>('');
   
   private destroyRef = inject(DestroyRef);
   private documentService = inject(DocumentService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private http = inject(HttpClient);
+  private dialog = inject(MatDialog);
   
   document = signal<TableItem | undefined>(undefined);
   instance = signal<any>(null);
   loading = signal<boolean>(true);
   error = signal<boolean>(false);
   
-  ngOnInit(): void {
+  ngAfterViewInit(): void {
     this.route.paramMap.pipe(
       takeUntilDestroyed(this.destroyRef),
       switchMap(params => {
@@ -118,72 +122,86 @@ export class PdfEditorComponent implements OnInit, OnDestroy {
     console.log('Loading PDF viewer with URL:', pdfUrl);
     console.log('Container element:', container);
 
-    (window as any).NutrientViewer.load({
+    NutrientViewer.load({
       container,
       document: pdfUrl,
       baseUrl: `${location.origin}/assets/pspdfkit/`,
       locale: "en",
-      language: "en",
-      toolbarItems: [
-        { type: "sidebar-thumbnails" },
-        { type: "sidebar-bookmarks" },
-        { type: "pager" },
-        { type: "zoom-out" },
-        { type: "zoom-in" },
-        { type: "zoom-mode" },
-        { type: "spacer" },
+      toolbarItems: this.getToolbarItems(),
+    })
+    .then((instance: any) => {
+      this.instance.set(instance);
+      this.loading.set(false);
+    })
+    .catch((error: Error) => {
+      console.error('Error loading PDF viewer:', error);
+      this.error.set(true);
+      this.loading.set(false);
+    });
+  }
+  
+  private getToolbarItems(): any[] {
+    const baseItems = [
+      { type: "sidebar-thumbnails" },
+      { type: "sidebar-bookmarks" },
+      { type: "pager" },
+      { type: "zoom-out" },
+      { type: "zoom-in" },
+      { type: "print" },
+    ];
+    
+    // Only show edit tools for reviewers
+    if (this.authService.isReviewer()) {
+      return [
+        ...baseItems,
         { type: "text-highlighter" },
         { type: "stamp" },
         { type: "ink" },
         { type: "text" },
         { type: "note" },
         { type: "ink-eraser" },
-        { type: "pan" },
-        { type: "print" },
-        { type: "spacer" },
-        { type: "export-pdf" }
-      ]
-    })
-    .then((instance: any) => {
-      console.log('PDF viewer initialized successfully:', instance);
-      this.instance.set(instance);
-      this.loading.set(false);
-      
-      instance.addEventListener("document.change", () => {
-        console.log('Document has unsaved changes');
-      });
-    })
-    .catch((error: Error) => {
-      console.error('Error loading PDF editor:', error);
-      this.error.set(true);
-      this.loading.set(false);
-    });
-  }
-  
-  private hasUnsavedChanges(): boolean {
-    return true;
-  }
-  
-  saveDocument(): void {
-    const currentInstance = this.instance();
-    if (!currentInstance) return;
+        { type: "spacer" }
+      ];
+    }
     
-    currentInstance.exportPDF().then((buffer: ArrayBuffer) => {
-      const blob = new Blob([buffer], { type: 'application/pdf' });
-      const formData = new FormData();
-      formData.append('file', blob, 'document.pdf');
-      
-      this.documentService.updateDocument(this.documentId(), formData)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (response: TableItem) => {
-            console.log('Document saved successfully:', response);
-          },
-          error: (error: Error) => {
-            console.error('Error saving document:', error);
-          }
-        });
+    return baseItems;
+  }
+  
+  editDocument(): void {
+    if (!this.document()) return;
+    
+    const dialogRef = this.dialog.open(EditDocumentModalComponent, {
+      width: '500px',
+      data: {
+        documentId: this.document()!.id,
+        documentName: this.document()!.name,
+        documentStatus: this.document()!.status
+      }
     });
+    
+    dialogRef.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(result => {
+      if (result) {
+        this.documentService.getDocumentById(this.document()!.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe(updatedDoc => {
+            this.document.set(updatedDoc);
+          });
+      }
+    });
+  }
+  
+  isUser(): boolean {
+    return this.authService.isUser();
+  }
+  
+  isReviewer(): boolean {
+    return this.authService.isReviewer();
+  }
+  
+  canEdit(): boolean {
+    return this.isUser() && this.document() !== undefined;
   }
   
   async backToDocuments(): Promise<void> {
